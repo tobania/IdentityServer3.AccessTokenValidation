@@ -33,6 +33,7 @@ namespace IdentityServer3.AccessTokenValidation
         private readonly ILogger _logger;
         private string _issuer;
         private IEnumerable<SecurityToken> _tokens;
+        private DateTimeOffset _syncAfter = new DateTimeOffset(new DateTime(2001, 1, 1));
 
         public DiscoveryDocumentIssuerSecurityTokenProvider(string discoveryEndpoint, IdentityServerBearerTokenAuthenticationOptions options, ILoggerFactory loggerFactory)
         {
@@ -131,6 +132,8 @@ namespace IdentityServer3.AccessTokenValidation
 
         private void RetrieveMetadata()
         {
+            if (_syncAfter >= DateTimeOffset.UtcNow) return;
+
             _synclock.EnterWriteLock();
             try
             {
@@ -157,6 +160,8 @@ namespace IdentityServer3.AccessTokenValidation
 
                 _issuer = result.Issuer;
                 _tokens = tokens;
+                _syncAfter = DateTimeOffset.UtcNow + _configurationManager.AutomaticRefreshInterval;
+
             }
             catch (Exception ex)
             {
